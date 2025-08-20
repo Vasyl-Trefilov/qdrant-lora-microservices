@@ -44,5 +44,7 @@ v
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/Vasyl-Trefilov/qdrant-lora-microservices.git
+git clone git@github.com:Vasyl-Trefilov/qdrant-lora-microservices.git
 cd qdrant-lora-microservices
+git submodule update --init --recursive
+```
