@@ -1,4 +1,7 @@
+// ChatBot.jsx
 import { useState, useEffect, useRef } from "react";
+import ProviderSelector from "./ProviderSelecter";
+import axios from "axios"
 
 export default function Chatbot() {
   const [messages, setMessages] = useState([
@@ -6,8 +9,20 @@ export default function Chatbot() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [provider, setProvider] = useState("openai"); // <-- selection state
   const messagesEndRef = useRef(null);
 
+  const endpoints = {
+    openai: "http://localhost:3000/search",
+    company: "http://0.0.0.0:8000/generate",
+  };
+  const parseQuellWerke = async () =>{
+    await axios.post("http://localhost:3000/parse-url",{
+      url: "https://www.quellwerke.de", 
+      lang: "de", 
+      title: "QuellWerke"
+    })
+  }
   async function sendMessage() {
     if (!input.trim()) return;
 
@@ -17,16 +32,22 @@ export default function Chatbot() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3000/search", {
+      const res = await fetch(endpoints[provider], {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: input, provider: "openai" }),
+        body:
+          provider === "openai"
+            ? JSON.stringify({ query: input, provider: "openai" })
+            : JSON.stringify({ question: input }), // adjust payload for company API
       });
       const data = await res.json();
 
       setMessages((prev) => [
         ...prev,
-        { role: "bot", content: data?.answer || "(no response)" },
+        {
+          role: "bot",
+          content: data?.answer || data?.response || "(no response)",
+        },
       ]);
     } catch (err) {
       setMessages((prev) => [
@@ -43,26 +64,64 @@ export default function Chatbot() {
   }, [messages]);
 
   return (
-    <div style={{
-      width: "100%",
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-      background: "transparent"
-    }}>
-      <div style={{
-        flex: 1,
-        padding: "20px",
-        overflowY: "auto",
-        borderBottom: "2px solid #222"
-      }}>
+    <div
+      style={{
+        zIndex: 10,
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        background: "transparent",
+      }}
+    >
+      {/* Provider Selector */}
+      <div
+        style={{
+          zIndex: 10,
+          padding: "12px 16px",
+          background: "#0f172a",
+          borderBottom: "2px solid #222",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div
+        onClick={parseQuellWerke}
+          style={{
+            cursor: "pointer",
+            padding: "14px 18px",
+            borderRadius: "20px",
+            maxWidth: "75%",
+            whiteSpace: "pre-line",
+            background: "#374151",
+            color: "white",
+            fontSize: "16px",
+            lineHeight: "1.6",
+          }}
+        >
+          Parse QuellWerke
+        </div>
+       <ProviderSelector provider={provider} setProvider={setProvider} />
+      </div>
+
+      {/* Chat messages */}
+      <div
+        style={{
+          flex: 1,
+          padding: "20px",
+          overflowY: "auto",
+          borderBottom: "2px solid #222",
+        }}
+      >
         {messages.map((msg, i) => (
           <div
             key={i}
             style={{
               display: "flex",
-              justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-              marginBottom: "16px"
+              justifyContent:
+                msg.role === "user" ? "flex-end" : "flex-start",
+              marginBottom: "16px",
             }}
           >
             <div
@@ -76,7 +135,7 @@ export default function Chatbot() {
                 borderBottomRightRadius: msg.role === "user" ? "0" : "20px",
                 borderBottomLeftRadius: msg.role === "bot" ? "0" : "20px",
                 fontSize: "16px",
-                lineHeight: "1.6"
+                lineHeight: "1.6",
               }}
             >
               {msg.content}
@@ -86,13 +145,16 @@ export default function Chatbot() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div style={{
-        display: "flex",
-        gap: "12px",
-        padding: "16px",
-        background: "#111",
-        borderTop: "2px solid #222"
-      }}>
+      {/* Input area */}
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          padding: "16px",
+          background: "#111",
+          borderTop: "2px solid #222",
+        }}
+      >
         <input
           type="text"
           value={input}
@@ -106,7 +168,7 @@ export default function Chatbot() {
             padding: "14px",
             fontSize: "16px",
             background: "#1e293b",
-            color: "#f9fafb"
+            color: "#f9fafb",
           }}
         />
         <button
@@ -120,7 +182,7 @@ export default function Chatbot() {
             borderRadius: "12px",
             fontSize: "16px",
             opacity: loading ? 0.6 : 1,
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
           {loading ? "..." : "Send"}

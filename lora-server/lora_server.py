@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import uvicorn
 import torch
 from unsloth import FastLanguageModel
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load LoRA model once
 model, tokenizer = FastLanguageModel.from_pretrained(
@@ -15,7 +16,18 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 )
 model.load_adapter("llama3.2-3b-quellwerke-lora-final")
 
+
+
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or restrict to ["http://localhost:3000"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 class Query(BaseModel):
     question: str
